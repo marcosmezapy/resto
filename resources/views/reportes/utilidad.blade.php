@@ -1,0 +1,1 @@
+<livewire:reportes.reporte-utilidad-productos />
