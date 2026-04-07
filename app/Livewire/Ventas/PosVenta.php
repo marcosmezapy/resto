@@ -16,7 +16,10 @@ use App\Models\PrdMovimientoStock;
 use App\Models\PrdStock;
 use App\Models\Tenant;
 use App\Models\VentaDetalleLote;
+use App\Services\Caja\CajaSesionService;
 use App\Services\StockService; // <-- AGREGADO
+use App\Services\Ventas\DescuentoService;
+
 
 class PosVenta extends Component
 {
@@ -46,10 +49,32 @@ public $clienteNombre = 'Consumidor Final';
 public $tipo_documento = 'factura';
 
 
+public $autoCobrado = false;
+
+public $condicion_pago = 'contado';
+public $dias_credito = 0;
+
+
     public function mount($venta_id)
     {
 
+        $cajaService = app(CajaSesionService::class);
+
+        try {
+            $sesion = $cajaService->validarCajaAbierta();
+        } catch (\Exception $e) {
+            return redirect()->route('ventas.cajas.abrir');
+        }
+
         $this->venta = Venta::findOrFail($venta_id);
+
+ 
+            // 🔥 asegurar que la venta tenga la sesión correcta
+    //    if(!$this->venta->caja_sesion_id){
+      //      $this->venta->update([
+       //         'caja_sesion_id' => $sesion->id
+        //    ]);
+       // }
 
         if($this->venta->cliente_id){
 
@@ -167,27 +192,33 @@ $this->cargarProductos();
 
 public function cargarProductos()
 {
+    // 🔎 BUSCAR → en toda la base
+    if($this->buscarProducto){
 
-$query = PrdProducto::query();
+        $this->productos = PrdProducto::where('nombre','like','%'.$this->buscarProducto.'%')
+            ->get();
 
-if($this->clasificacionSeleccionada){
-$query->where('clasificacion_id',$this->clasificacionSeleccionada);
-}
+        return;
+    }
 
-if($this->buscarProducto){
-$query->where('nombre','like','%'.$this->buscarProducto.'%');
-}
+    // 📂 CATEGORÍA
+    if($this->clasificacionSeleccionada){
 
-$this->productos = $query->limit(30)->get();
+        $this->productos = PrdProducto::where('clasificacion_id', $this->clasificacionSeleccionada)
+            ->get();
 
+        return;
+    }
+
+    // ❌ DEFAULT → VACÍO
+    $this->productos = [];
 }
 
 
 public function updatedBuscarProducto()
 {
-
-$this->cargarProductos();
-
+    $this->clasificacionSeleccionada = null;
+    $this->cargarProductos();
 }
 
 
@@ -236,16 +267,18 @@ DETALLES
 
     }
 
-    $precio = $producto->precio_venta;
+    $precioOriginal = $producto->precio_venta;
+    $descuento = 0;
+    $precioFinal = $precioOriginal;
 
     // 🆕 OBTENER IVA DEL PRODUCTO
     $ivaPorcentaje = $producto->ivaTipo->porcentaje ?? 0;
 
     // 🆕 CALCULAR IVA UNITARIO (precio YA incluye IVA)
     if($ivaPorcentaje == 10){
-        $ivaUnitario = $precio / 11;
+        $ivaUnitario = $precioOriginal / 11;
     }elseif($ivaPorcentaje == 5){
-        $ivaUnitario = $precio / 21;
+        $ivaUnitario = $precioOriginal / 21;
     }else{
         $ivaUnitario = 0;
     }
@@ -257,17 +290,24 @@ DETALLES
 
     if(!$detalle){
 
-    VentaDetalle::create([
-    'venta_id'=>$this->venta->id,
-    'producto_id'=>$producto_id,
-    'cantidad'=>1,
-    'precio'=>$precio,
-    'subtotal'=>$precio,
-        // 🆕 IVA
-    'iva_porcentaje'=>$ivaPorcentaje,
-    'iva_unitario'=>$ivaUnitario,
-    'iva_total'=>$ivaUnitario // cantidad = 1
-    ]);
+        VentaDetalle::create([
+            'venta_id'=>$this->venta->id,
+            'producto_id'=>$producto_id,
+
+            'cantidad'=>1,
+
+            'precio'=>$precioFinal,
+            'precio_original'=>$precioOriginal,
+            'descuento_porcentaje'=>0,
+
+            'subtotal'=>$precioFinal,
+            'subtotal_original'=>$precioOriginal,
+
+            'iva_porcentaje'=>$ivaPorcentaje,
+            'iva_unitario'=>$ivaUnitario,
+            'iva_total'=>$ivaUnitario,
+            'iva_original'=>$ivaUnitario
+        ]);
 
     }else{
 
@@ -526,208 +566,169 @@ return $vuelto > 0 ? $vuelto : 0;
 
 public function cobrar()
 {
-  
+    $cajaService = app(\App\Services\Caja\CajaSesionService::class);
+    $ventaService = app(\App\Services\Ventas\VentaService::class);
+    $pagoService = app(\App\Services\Ventas\PagoService::class);
+    $creditoService = app(\App\Services\Ventas\CreditoService::class);
+    $facturacionService = app(\App\Services\Ventas\FacturacionService::class);
+    $stockService = app(\App\Services\Ventas\StockVentaService::class);
 
-    if($this->restante > 0){
+    try {
+        $sesion = $cajaService->validarCajaAbierta();
+    } catch (\Exception $e) {
+        $this->dispatch('errorCaja');
+        return;
+    }
+
+    if($this->condicion_pago == 'contado' && $this->totalPagado <= 0){
         $this->dispatch('errorPagoIncompleto');
         return;
     }
 
-    DB::transaction(function(){
+    $ventaCompleta = false;
 
-        $venta = Venta::with('cajaSesion.caja')
+    DB::transaction(function () use (
+        &$ventaCompleta,
+        $ventaService,
+        $pagoService,
+        $creditoService,
+        $facturacionService,
+        $stockService,
+        $sesion
+    ) {
+
+        $venta = \App\Models\Venta::with('cajaSesion.caja')
             ->lockForUpdate()
             ->find($this->venta->id);
 
-        /*
-        =====================================
-        1. REGISTRAR PAGOS
-        =====================================
-        */
-$totalVenta = $venta->total;
-
-// 🔹 separar pagos
-$pagosEfectivo = [];
-$pagosOtros = [];
-
-foreach($this->pagos as $pago){
-
-    if(floatval($pago['monto']) <= 0) continue;
-
-    if($pago['metodo_pago'] == 'efectivo'){
-        $pagosEfectivo[] = $pago;
-    } else {
-        $pagosOtros[] = $pago;
-    }
-}
-
-/*
-=====================================
-1. APLICAR PAGOS NO EFECTIVO
-=====================================
-*/
-
-$totalCubierto = 0;
-
-foreach($pagosOtros as $pago){
-
-    $monto = floatval($pago['monto']);
-
-    $montoAplicado = min($monto, $totalVenta - $totalCubierto);
-
-    if($montoAplicado <= 0) break;
-
-    VentaPago::create([
-        'venta_id' => $venta->id,
-        'metodo_pago' => $pago['metodo_pago'],
-        'monto' => $montoAplicado
-    ]);
-
-    $totalCubierto += $montoAplicado;
-}
-
-/*
-=====================================
-2. APLICAR EFECTIVO (CON VUELTO)
-=====================================
-*/
-
-$restante = $totalVenta - $totalCubierto;
-
-foreach($pagosEfectivo as $pago){
-
-    $monto = floatval($pago['monto']);
-
-    if($restante <= 0) break;
-
-    $montoAplicado = min($monto, $restante);
-
-    VentaPago::create([
-        'venta_id' => $venta->id,
-        'metodo_pago' => 'efectivo',
-        'monto' => $montoAplicado
-    ]);
-
-    $restante -= $montoAplicado;
-}
+        $esCredito = $this->condicion_pago === 'credito';
 
         /*
         =====================================
-        2. PROCESAR STOCK
+        1. PAGOS / CRÉDITO
         =====================================
         */
-        $this->venta = $venta;
-        $this->procesarStockVenta();
 
-        /*
-        =====================================
-        3. OBTENER CAJA → PUNTO
-        =====================================
-        */
-        $caja = $venta->cajaSesion->caja;
+        if($esCredito){
 
-        if(!$caja->punto_expedicion_id){
-            throw new \Exception("La caja no tiene punto de expedición asignado");
+            try {
+                $creditoService->aplicarCredito(
+                    $venta,
+                    $this->clienteSeleccionado,
+                    (int)$this->dias_credito
+                );
+            } catch (\Exception $e){
+                $this->dispatch('errorClienteCredito');
+                throw $e;
+            }
+
+        } else {
+
+            $pagoService->registrarPagos($venta, $this->pagos);
         }
 
         /*
         =====================================
-        🔥 FACTURACIÓN (FORMAL vs INFORMAL)
+        2. ESTADO DE PAGO (CLAVE)
         =====================================
         */
 
-        $tenant = \App\Models\Tenant::find($venta->tenant_id);
+        $pagoService->actualizarEstadoPago($venta);
 
-        //AGREGADO DE AQUI TICKET VS FACTURA?
         /*
-        VALIDACIÓN: empresa informal NO puede facturar
+        =====================================
+        3. DEFINIR SI VENTA ESTÁ COMPLETA
+        =====================================
         */
-        if($tenant->tipo_facturacion == 'informal'){
-            $this->tipo_documento = 'ticket';
+
+        if($esCredito){
+            $ventaCompleta = true;
+        } else {
+            $totalPagado = $pagoService->totalPagado($venta);
+            $ventaCompleta = $totalPagado >= $venta->total;
         }
 
         /*
+        =====================================
+        4. STOCK
+        =====================================
+        */
+
+        if($ventaCompleta){
+            $stockService->procesar($venta);
+        }
+
+        /*
+        =====================================
+        5. FACTURACIÓN
+        =====================================
+        */
+
+        if($ventaCompleta){
+
+            $caja = $venta->cajaSesion->caja;
+
+            if(!$caja->punto_expedicion_id){
+                throw new \Exception("Caja sin punto de expedición");
+            }
+
+            $tenant = \App\Models\Tenant::find($venta->tenant_id);
+
+            if($tenant->tipo_facturacion == 'informal'){
+                $this->tipo_documento = 'ticket';
+            }
+
+            $facturacionService->generar($venta, $this->tipo_documento, $caja);
+        }
+
+        /*
+        =====================================
+        6. CERRAR VENTA (NO CONFUNDIR CON PAGADO)
+        =====================================
+        */
+
+        if($ventaCompleta){
+            $ventaService->cerrarVenta($venta);
+        }
+
+    });
+
+    /*
     =====================================
-    FACTURA
+    UI RESPUESTA
     =====================================
     */
-    if($this->tipo_documento == 'factura'){
 
-    $numeracion = \App\Models\Numeracion::where('tenant_id',$venta->tenant_id)
-        ->where('sucursal_id',$venta->sucursal_id)
-        ->where('punto_expedicion_id',$caja->punto_expedicion_id)
-        ->lockForUpdate()
-        ->first();
-
-    if(!$numeracion){
-        throw new \Exception("No existe numeración configurada");
-    }
-
-    $nuevoNumero = $numeracion->ultimo_numero + 1;
-
-    $timbrado = \App\Models\Timbrado::where('tenant_id',$venta->tenant_id)
-        ->where('sucursal_id',$venta->sucursal_id)
-        ->where('punto_expedicion_id',$caja->punto_expedicion_id)
-        ->where('estado','vigente')
-        ->first();
-
-    if(!$timbrado){
-        throw new \Exception("No hay timbrado vigente");
-    }
-
-    if($nuevoNumero > $timbrado->numero_fin){
-        throw new \Exception("Timbrado agotado");
-    }
-
-    $sucursal = \App\Models\Sucursal::find($venta->sucursal_id);
-    $punto = \App\Models\PuntoExpedicion::find($caja->punto_expedicion_id);
-
-    $codigoSucursal = str_pad($sucursal->codigo ?? $venta->sucursal_id, 3, '0', STR_PAD_LEFT);
-    $codigoPunto = str_pad($punto->codigo ?? $caja->punto_expedicion_id, 3, '0', STR_PAD_LEFT);
-    $numeroFormateado = str_pad($nuevoNumero, 7, '0', STR_PAD_LEFT);
-
-    $numeroDocumento = "{$codigoSucursal}-{$codigoPunto}-{$numeroFormateado}";
-
-    $numeracion->update([
-        'ultimo_numero'=>$nuevoNumero
-    ]);
-
-    $timbrado->update([
-        'ultimo_numero_usado'=>$nuevoNumero
-    ]);
-
-    $venta->update([
-        'estado'=>'pagada',
-        'tipo_documento'=>'factura',
-        'punto_expedicion_id'=>$caja->punto_expedicion_id,
-        'timbrado_id'=>$timbrado->id,
-        //'numero'=>$nuevoNumero,
-        'numero_documento'=>$numeroDocumento
-    ]);
-
-    } else {
-
-    $nuevoNumero = Venta::where('tenant_id',$venta->tenant_id)
-        ->where('tipo_documento','ticket') // 🔥 CLAVE
-        ->max('numero') + 1;
-
-            $numeroDocumento = str_pad($nuevoNumero, 6, '0', STR_PAD_LEFT);
-
-            $venta->update([
-                'estado'=>'pagada',
-                'tipo_documento'=>'ticket',
-                'numero'=>$nuevoNumero,
-                'numero_documento'=>$numeroDocumento
-            ]);
-        }
-
-
-    //HASTA ACA CREO
-        });
-
+    if($ventaCompleta){
         $this->dispatch('printVenta', ventaId: $this->venta->id);
+    } else {
+        $this->dispatch('pagoParcial');
+    }
 
-    //   return redirect()->route('ventas.pos.index');
+    $this->autoCobrado = false;
+}
+
+public function recargarPagos()
+{
+    $pagosDB = VentaPago::where('venta_id', $this->venta->id)->get();
+
+    $this->pagos = [];
+
+    // 🔒 pagos ya registrados
+    foreach($pagosDB as $pago){
+        $this->pagos[] = [
+            'metodo_pago' => $pago->metodo_pago,
+            'monto' => $pago->monto,
+            'bloqueado' => true
+        ];
+    }
+
+    // ➕ nuevo pago automático
+    $this->pagos[] = [
+        'metodo_pago' => 'efectivo',
+        'monto' => 0,
+        'bloqueado' => false
+    ];
 }
 
 
@@ -751,6 +752,69 @@ $this->pagos[0]['monto'] = $this->venta->total;
 }
 
 
+public function actualizarDescuento($detalle_id, $descuento)
+{
+    $detalle = VentaDetalle::findOrFail($detalle_id);
+
+    // 🔥 SANEAR DESCUENTO
+    $descuento = floatval($descuento ?? 0);
+
+    if($descuento < 0) $descuento = 0;
+    if($descuento > 100) $descuento = 100;
+
+    // 🔥 ASEGURAR PRECIO ORIGINAL
+    if(!$detalle->precio_original || $detalle->precio_original <= 0){
+        $detalle->precio_original = $detalle->precio;
+        $detalle->save();
+    }
+
+    $precioOriginal = $detalle->precio_original;
+
+    $service = app(\App\Services\Ventas\DescuentoService::class);
+
+    $resultado = $service->aplicarPorcentaje(
+        $precioOriginal,
+        $detalle->cantidad,
+        $descuento,
+        $detalle->iva_porcentaje
+    );
+
+    $detalle->update([
+        'descuento_porcentaje' => $descuento,
+        'precio' => $resultado['precio_final'],
+        'subtotal' => $resultado['subtotal'],
+        'subtotal_original' => $resultado['subtotal_original'],
+        'iva_unitario' => $resultado['iva_unitario'],
+        'iva_total' => $resultado['iva_total'],
+        'iva_original' => $resultado['iva_original']
+    ]);
+
+    $this->actualizarVenta();
+}
+
+public function updatedPagos()
+{
+    // 🔥 recalcular total pagado dinámicamente
+    $total = 0;
+
+    foreach($this->pagos as $pago){
+
+        if(isset($pago['bloqueado']) && $pago['bloqueado']){
+            continue;
+        }
+
+        $total += floatval($pago['monto']);
+    }
+
+    $saldo = $this->venta->total - $total;
+
+    if($saldo <= 0){
+
+        $this->autoCobrado = true;
+        // 🔥 pequeño delay visual (opcional)
+        $this->dispatch('autoCobrar');
+    }
+}
 
 
 public function render()

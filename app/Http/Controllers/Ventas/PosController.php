@@ -49,7 +49,7 @@ class PosController extends Controller
 
             // buscar venta abierta en la mesa (sin importar la caja)
             $venta = Venta::where('mesa_id',$mesa->id)
-                ->where('estado','abierta')
+                ->whereIn('estado',['abierta','en_proceso'])
                 ->lockForUpdate()
                 ->first();
 

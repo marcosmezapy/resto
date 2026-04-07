@@ -15,10 +15,14 @@ class VentaDetalle extends Model
         'venta_id',
         'producto_id',
         'precio',
+        'precio_original',
+        'descuento_porcentaje',
         'cantidad',
         'subtotal',
+        'subtotal_original',
         'iva_porcentaje',
         'iva_unitario',
+        'iva_original',
         'iva_total',
         'costo_unitario'
     ];

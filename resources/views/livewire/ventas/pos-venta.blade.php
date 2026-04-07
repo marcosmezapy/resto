@@ -1,88 +1,84 @@
 <div>
-
 {{-- CLIENTE --}}
+ {{-- <div class="row mt-2">
+  @if($mesa->numero!=null)
+        {{$mesa->numero}}
+    
+    @endif
+</div>--}}
 <div class="row mt-2">
-
-<div class="col-md-12">
-
-<div class="card">
-
-<div class="card-body p-2">
-
-<input
-type="text"
-class="form-control form-control-sm"
-placeholder="Buscar cliente por nombre o RUC..."
-wire:model.live="buscarCliente">
-
-@if($clienteSeleccionado)
-
-<div class="alert alert-success mt-1 p-1 small">
-
-Cliente:
-<strong>{{ $clienteNombre }}</strong>
-
-<button
-class="btn btn-sm btn-danger float-right py-0 px-2"
-wire:click="limpiarCliente">
-
-X
-
-</button>
-
-</div>
-
-@endif
+   
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body p-2">
+                <input
+                type="text"
+                class="form-control form-control-sm"
+                placeholder="Escanear código o buscar producto..."
+                wire:model.live="buscarProducto"
+                autocomplete="off">
+            </div>
+        </div>
+    </div>
 
 
-@if(count($resultadosClientes))
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body p-2">
+                <input
+                type="text"
+                class="form-control form-control-sm"
+                placeholder="Buscar cliente por nombre o RUC..."
+                wire:model.live="buscarCliente">
+                @if($clienteSeleccionado)
+                    <div class="alert alert-success mt-1 p-1 small">
 
-<div class="cliente-resultados mt-1">
+                    Cliente:
+                    <strong>{{ $clienteNombre }}</strong>
 
-@foreach($resultadosClientes as $cliente)
+                    <button
+                    class="btn btn-sm btn-danger float-right py-0 px-2"
+                    wire:click="limpiarCliente">
 
-<div
-class="cliente-item"
-wire:click="seleccionarCliente({{ $cliente->id }})">
+                    X
 
-<strong>{{ $cliente->nombre }}</strong>
+                    </button>
 
-@if($cliente->ruc)
-<br>
-<small>RUC: {{ $cliente->ruc }}</small>
-@endif
+                    </div>
+                @endif
+                @if(count($resultadosClientes))
 
-</div>
+                    <div class="cliente-resultados mt-1">
 
-@endforeach
+                        @foreach($resultadosClientes as $cliente)
 
-</div>
+                            <div
+                            class="cliente-item"
+                            wire:click="seleccionarCliente({{ $cliente->id }})">
 
-@endif
+                                <strong>{{ $cliente->nombre }}</strong>
 
-</div>
+                                @if($cliente->ruc)
+                                <br>
+                                <small>RUC: {{ $cliente->ruc }}</small>
+                                @endif
 
-</div>
+                            </div>
 
-</div>
+                        @endforeach
 
-</div>
+                    </div>
+
+                @endif
+
+            </div>
+        </div>
+
+    </div>
 
 
 
-{{-- BUSCADOR PRODUCTO --}}
-<div class="row mt-2">
 
-<div class="col-md-12">
-
-<input
-type="text"
-class="form-control buscador-pos"
-placeholder="Escanear código o buscar producto..."
-wire:model.live="buscarProducto"
-autocomplete="off">
-
-</div>
 
 </div>
 
@@ -90,180 +86,241 @@ autocomplete="off">
 
 <div class="row mt-2">
 
-{{-- CATEGORIAS --}}
-<div class="col-md-3">
+    {{-- IZQUIERDA --}}
+    <div class="col-md-6">
 
-<div class="card">
+        {{-- CATEGORIAS --}}
+        <div class="card mb-2">
 
-<div class="card-header p-2">
-<b>Categorías</b>
-</div>
+            <div class="card-header p-2">
+                <b>Categorías</b>
+            </div>
 
-<div class="card-body p-1">
+            <div class="card-body p-2">
 
-@foreach($clasificaciones as $clasificacion)
+                <div class="row">
 
-<button
-wire:click="seleccionarClasificacion({{ $clasificacion->id }})"
+                    @foreach($clasificaciones as $clasificacion)
 
-class="btn btn-sm btn-block mb-1
-@if($buscarProducto)
-btn-secondary
-@else
-btn-light border
-@endif"
+                    <div class="col-4 mb-1">
 
-@if($buscarProducto)
-disabled
-@endif
->
+                        <button
+                            wire:click="seleccionarClasificacion({{ $clasificacion->id }})"
+                            class="btn btn-sm w-100
+                            @if($buscarProducto)
+                                btn-secondary
+                            @else
+                                btn-light border
+                            @endif"
+                            @if($buscarProducto) disabled @endif
+                        >
+                            {{ $clasificacion->nombre }}
+                        </button>
 
-{{ $clasificacion->nombre }}
+                    </div>
 
-</button>
+                    @endforeach
 
-@endforeach
+                </div>
 
-</div>
+            </div>
 
-</div>
+        </div>
 
-</div>
+        {{-- PRODUCTOS --}}
+        <div class="card">
 
+            <div class="card-header p-2">
+                <b>Productos</b>
+            </div>
 
+            <div class="card-body p-2">
+                @if(count($productos) == 0)
 
-{{-- PRODUCTOS --}}
-<div class="col-md-5">
+                <div class="text-center text-muted p-3">
 
-<div class="card">
+                    <small>
+                        🔎 Busque un producto o seleccione una categoría
+                    </small>
 
-<div class="card-header p-2">
-<b>Productos</b>
-</div>
+                </div>
 
-<div class="card-body p-2">
+                @endif
+                <div class="row">
 
-<div class="row">
+                    @foreach($productos as $producto)
 
-@foreach($productos as $producto)
+                    <div class="col-md-4 mb-2">
 
-<div class="col-md-6 mb-2">
+                        <div
+                            wire:click="agregarProducto({{ $producto->id }})"
+                            class="producto-card">
 
-<div
-wire:click="agregarProducto({{ $producto->id }})"
-class="producto-card">
+                            <div class="producto-nombre">
+                                {{ $producto->nombre }}
+                            </div>
 
-<div class="producto-nombre">
-{{ $producto->nombre }}
-</div>
+                            <div class="producto-precio">
+                                Gs. {{ number_format($producto->precio_venta,0,',','.') }}
+                            </div>
 
-<div class="producto-precio">
-Gs. {{ number_format($producto->precio_venta,0,',','.') }}
-</div>
+                        </div>
 
-</div>
+                    </div>
 
-</div>
+                    @endforeach
 
-@endforeach
+                </div>
 
-</div>
+            </div>
 
-</div>
+        </div>
 
-</div>
+    </div>
 
-</div>
+    {{-- DERECHA (VENTA) --}}
+    <div class="col-md-6">
 
+        <div class="card" style="height: 50vh;">
 
+            <div class="card-header p-2">
+                <b>Venta</b>
+            </div>
 
-{{-- VENTA --}}
-<div class="col-md-4">
+            <div class="card-body p-2 d-flex flex-column">
 
-<div class="card">
+                {{-- DETALLE --}}
+                <div style="flex:1; overflow-y:auto;">
 
-<div class="card-header p-2">
-<b>Venta</b>
-</div>
+                    <table class="table table-sm mb-1">
 
-<div class="card-body p-2">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th width="120">Cant</th>
+                                <th width="120">Precio</th>
+                                <th width="90">Desc</th>
+                                <th width="120">Subtotal</th>
+                                <th width="30"></th>
+                            </tr>
+                        </thead>
 
-<table class="table table-sm mb-1">
+                        <tbody>
 
-<thead>
-<tr>
-<th>Producto</th>
-<th width="100">Cant</th>
-<th width="30"></th>
-</tr>
-</thead>
+                        @foreach($detalles as $detalle)
+                        <tr wire:key="detalle-{{ $detalle->id }}">
 
-<tbody>
+                        <tr>
 
-@foreach($detalles as $detalle)
+                            {{-- PRODUCTO --}}
+                            <td class="small">
+                                {{ $detalle->producto->nombre }}
+                            </td>
 
-<tr>
+                            {{-- CANTIDAD --}}
+                            <td>
+                                <button
+                                wire:click="restar({{ $detalle->id }})"
+                                class="btn btn-outline-secondary btn-sm py-0 px-2">-</button>
 
-<td class="small">{{ $detalle->producto->nombre }}</td>
+                                <span class="mx-1 small">{{ $detalle->cantidad }}</span>
 
-<td>
+                                <button
+                                wire:click="agregarProducto({{ $detalle->producto_id }})"
+                                class="btn btn-outline-secondary btn-sm py-0 px-2">+</button>
+                            </td>
 
-<button
-wire:click="restar({{ $detalle->id }})"
-class="btn btn-outline-secondary btn-sm py-0 px-2">-</button>
+                            {{-- PRECIO --}}
+                            <td class="small">
 
-<span class="mx-1 small">{{ $detalle->cantidad }}</span>
+                                <b>
+                                Gs. {{ number_format($detalle->precio,0,',','.') }}
+                                </b>
 
-<button
-wire:click="agregarProducto({{ $detalle->producto_id }})"
-class="btn btn-outline-secondary btn-sm py-0 px-2">+</button>
+                                @if($detalle->precio_original && $detalle->precio_original > $detalle->precio)
+                                    <br>
+                                    <small style="text-decoration: line-through; color:#888;">
+                                        Gs. {{ number_format($detalle->precio_original,0,',','.') }}
+                                    </small>
+                                @endif
 
-</td>
+                            </td>
 
-<td>
+                            {{-- DESCUENTO --}}
+                            <td>
 
-<button
-wire:click="eliminar({{ $detalle->id }})"
-class="btn btn-danger btn-sm py-0 px-2">X</button>
+                                <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value="{{ $detalle->descuento_porcentaje ?? 0 }}"
+                                wire:change.debounce.500ms="actualizarDescuento({{ $detalle->id }}, $event.target.value)"
+                                class="form-control form-control-sm text-center">
 
-</td>
+                            </td>
 
-</tr>
+                            {{-- SUBTOTAL --}}
+                            <td class="small">
 
-@endforeach
+                                <b>
+                                Gs. {{ number_format($detalle->subtotal,0,',','.') }}
+                                </b>
 
-</tbody>
+                                @if($detalle->subtotal_original && $detalle->subtotal_original > $detalle->subtotal)
+                                    <br>
+                                    <small style="text-decoration: line-through; color:#888;">
+                                        Gs. {{ number_format($detalle->subtotal_original,0,',','.') }}
+                                    </small>
+                                @endif
 
-</table>
+                            </td>
 
+                            {{-- ELIMINAR --}}
+                            <td>
+                                <button
+                                wire:click="eliminar({{ $detalle->id }})"
+                                class="btn btn-danger btn-sm py-0 px-2">X</button>
+                            </td>
 
-<hr class="my-1">
+                        </tr>
 
-<div class="total-box">
+                        @endforeach
 
-Total
+                        </tbody>
 
-<span>
-Gs. {{ number_format($venta->total,0,',','.') }}
-</span>
+                    </table>
 
-</div>
+                </div>
 
+                <hr class="my-1">
 
-<button
-class="btn btn-dark btn-sm btn-block mt-2"
-data-toggle="modal"
-data-target="#modalPago">
+                {{-- TOTAL --}}
+                <div class="total-box">
 
-COBRAR
+                    Total
 
-</button>
+                    <span>
+                        Gs. {{ number_format($venta->total,0,',','.') }}
+                    </span>
 
-</div>
+                </div>
 
-</div>
+                {{-- BOTON --}}
+                <button
+                    class="btn btn-dark btn-sm btn-block mt-2"
+                    data-toggle="modal"
+                    data-target="#modalPago"
+                    wire:click="recargarPagos">
 
-</div>
+                    COBRAR
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
 
 </div>
 
@@ -276,9 +333,12 @@ COBRAR
 
 <div class="modal-content">
 
+
+
 <div class="modal-header p-2">
 
 <h5 class="modal-title">Cobrar Venta</h5>
+
 
 <button type="button" class="close" data-dismiss="modal">
 <span>&times;</span>
@@ -288,6 +348,68 @@ COBRAR
 
 
 <div class="modal-body">
+
+    <div class="d-flex align-items-center justify-content-between mb-2">
+
+        {{-- IZQUIERDA --}}
+        <div class="d-flex align-items-center">
+
+            <span class="text-muted small mr-2">
+                Condición:
+            </span>
+
+            <div class="custom-control custom-radio custom-control-inline">
+
+                <input type="radio"
+                    id="contado"
+                    name="condicion"
+                    class="custom-control-input"
+                    wire:model.live="condicion_pago"
+                    value="contado">
+
+                <label class="custom-control-label small" for="contado">
+                    Contado
+                </label>
+
+            </div>
+
+            <div class="custom-control custom-radio custom-control-inline">
+
+                <input type="radio"
+                    id="credito"
+                    name="condicion"
+                    class="custom-control-input"
+                    wire:model.live="condicion_pago"
+                    value="credito">
+
+                <label class="custom-control-label small" for="credito">
+                    Crédito
+                </label>
+
+            </div>
+
+        </div>
+
+        {{-- DERECHA --}}
+        <div class="d-flex align-items-center">
+
+            <span class="text-muted small mr-1">
+                Plazo:
+            </span>
+
+            <input type="number"
+                min="1"
+                class="form-control form-control-sm text-center"
+                style="width:70px;
+                        opacity: {{ $condicion_pago == 'credito' ? '1' : '0.2' }};
+                        pointer-events: {{ $condicion_pago == 'credito' ? 'auto' : 'none' }};"
+                wire:model.live="dias_credito">
+
+            <span class="small text-muted ml-1">d</span>
+
+        </div>
+    </div>   
+
     @php
     $tenant = \App\Models\Tenant::find($venta->tenant_id);
 @endphp
@@ -355,7 +477,9 @@ Gs. {{ number_format($this->restante,0,',','.') }}
 
 <select
 class="form-control form-control-sm"
-wire:model.live="pagos.{{ $index }}.metodo_pago">
+wire:model.live="pagos.{{ $index }}.metodo_pago"
+@if(isset($pago['bloqueado']) && $pago['bloqueado']) disabled @endif
+>
 
 <option value="efectivo">Efectivo</option>
 <option value="tarjeta">Tarjeta</option>
@@ -375,10 +499,13 @@ wire:model.live="pagos.{{ $index }}.metodo_pago">
 
     <input 
         type="text"
-        class="form-control form-control-sm monto-formateado"
+        class="form-control monto-formateado"
         data-index="{{ $index }}"
         id="monto_visible_{{ $index }}"
-        placeholder="0">
+        value="{{ $pago['monto'] > 0 ? number_format((float)$pago['monto'], 0, ',', '.') : '' }}"
+        placeholder="0"
+        @if(isset($pago['bloqueado']) && $pago['bloqueado']) disabled @endif
+    >
 
     <input 
         type="hidden"
@@ -391,7 +518,7 @@ wire:model.live="pagos.{{ $index }}.metodo_pago">
 
 <div class="col-md-2 text-right">
 
-    @if($index > 0)
+    @if($index > 0 && empty($pago['bloqueado']))
 
     <button
     type="button"
@@ -437,15 +564,39 @@ Agregar pago
 </div>
 
 
+<div class="alert alert-info p-2">
+    Pagado:
+    <strong>
+        Gs. {{ number_format($venta->total_pagado_real,0,',','.') }}
+    </strong>
+</div>
+
+{{-- <div class="alert alert-warning p-2">
+    Saldo:
+    <strong>
+        Gs. {{ number_format($venta->saldo,0,',','.') }}
+    </strong>
+</div> --}}
+
+
+
 <div class="modal-footer p-2">
 
     <button
     type="button"
     class="btn btn-success btn-sm"
     wire:click="cobrar"
-    @if($this->restante > 0) disabled @endif>
+    wire:loading.attr="disabled"
+    @if($venta->saldo > 0)
+       
+            >Registrar pago
+        
+    @else
+        
+            >Cerrar venta
+        
+    @endif
 
-    Confirmar Pago
 
     </button>
 
@@ -607,10 +758,43 @@ function syncMontos(){
         }
 
     });
-
 }
-
+$('#modalPago').on('shown.bs.modal', function () {
+    syncMontos();
+});
 </script>   
 
+<script>
+window.addEventListener('errorCaja', () => {
+    alert('Debe abrir una caja antes de continuar');
+    window.location.href = "{{ route('ventas.cajas.abrir') }}";
+});
+</script>
+
+<script>
+    window.addEventListener('pagoParcial', () => {
+    alert('Pago registrado correctamente');
+
+    $('#modalPago').modal('hide');
+});
+</script>
+
+<script>
+
+    window.addEventListener('autoCobrar', () => {
+
+    // pequeño delay para UX
+    setTimeout(() => {
+        Livewire.dispatch('cobrar');
+    }, 500);
+
+});
+</script>
+
+<script>
+window.addEventListener('errorClienteCredito', () => {
+    alert('Debe seleccionar un cliente válido para crédito');
+});
+</script>
 
 </div>

@@ -27,15 +27,7 @@ class RolesForm extends Component
 
     public function mount()
     {
-
-           // Traemos permisos solo de submódulos activos y módulos activos
-    $this->permissions = Permission::whereHas('submodule', function ($q) {
-        $q->where('active', 1) // submodulo activo
-          ->whereHas('module', function ($q2) {
-              $q2->where('active', 1); // modulo activo
-          });
-    })->orderBy('name')->get();
-
+        $this->permissions = Permission::orderBy('name')->get();
     }
 
     public function create()

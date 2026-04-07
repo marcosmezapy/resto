@@ -28,7 +28,8 @@ class Venta extends Model
         'numero_factura',       // 🔥
         'tipo_documento',
         'numero_documento',
-        'numero'
+        'numero',
+        'estado_pago'
     ];
 
     public function detalles()
@@ -86,5 +87,19 @@ class Venta extends Model
     public function tenant()
     {
         return $this->belongsTo(\App\Models\Tenant::class, 'tenant_id');
+    }
+
+    public function getTotalPagadoRealAttribute()
+    {
+        return $this->pagos()->sum('monto');
+    }
+
+    public function getSaldoAttribute()
+    {
+        return $this->total - $this->total_pagado_real;
+    }
+    public function cobros()
+    {
+        return $this->hasMany(Cobro::class);
     }
 }

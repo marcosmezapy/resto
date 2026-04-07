@@ -2,6 +2,6 @@
 
 @section('content')
 
-@livewire('clientes.clientes-index')
+@livewire('clientes.cliente-ficha',['id'=>$id])
 
 @endsection

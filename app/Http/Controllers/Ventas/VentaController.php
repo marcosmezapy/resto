@@ -29,7 +29,7 @@ public function index()
 
 
 
-public function show($id)
+/*public function show($id)
 {
 
     $venta = Venta::with([
@@ -41,8 +41,12 @@ public function show($id)
 
     return view('ventas.historial.show',compact('venta'));
 
-}
+}*/
 
+public function show($id)
+{
+    return view('ventas.historial.show', compact('id'));
+}
 
 
 public function anular($id)

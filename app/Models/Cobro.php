@@ -3,19 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Traits\BelongsToTenant;
 
-class VentaPago extends Model
+class Cobro extends Model
 {
-    use BelongsToTenant;
-    protected $table = 'venta_pagos';
-
     protected $fillable = [
-
         'venta_id',
+        'cliente_id',
+        'monto',
         'metodo_pago',
-        'monto'
-
+        'user_id'
     ];
 
     public function venta()
@@ -23,10 +19,8 @@ class VentaPago extends Model
         return $this->belongsTo(Venta::class);
     }
 
-    public function user()
+    public function cliente()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Cliente::class);
     }
-
-
 }

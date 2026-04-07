@@ -332,35 +332,42 @@ return [
     [
         'text' => 'Ventas',
         'icon' => 'fas fa-cash-register',
+        'can' => ['ventas.index', 'caja_sesion.create','superadmin'], //VER
         'submenu' => [
 
             [
                 'text' => 'Crear ventas',
                 'route' => 'ventas.pos.index',
-                'icon' => 'fas fa-desktop'
+                'icon' => 'fas fa-desktop',
+                'can' => ['ventas.create','superadmin'], //VER
             ],
             [
                 'text' => 'Historial de ventas',
                 'route' => 'ventas.historial.index',
+                'can' => ['ventas.index','superadmin'], //VER
             ],
                 [
-        'text' => 'Cajas',
-        'icon' => 'fas fa-cash-register',
-        'submenu' => [
+                'text' => 'Cajas',
+                'icon' => 'fas fa-cash-register',
+                'can' => ['caja_sesion.index','superadmin'],
+                'submenu' => [
 
                     [
                         'text' => 'Historial de Cajas',
                         'route' => 'ventas.cajas.historial',
+                        'can' => ['caja_sesion.index','superadmin'],
                     ],
 
                     [
                         'text' => 'Abrir Caja',
                         'route' => 'ventas.cajas.abrir',
+                        'can' => ['caja_sesion.create','superadmin'],
                     ],
 
                     [
                         'text' => 'Caja Actual',
                         'route' => 'ventas.cajas.dashboard',
+                        'can' => ['caja_sesion.create','superadmin'],
                     ],
 
         ]
@@ -384,7 +391,8 @@ return [
     [
         'text' => 'Clientes',
         'icon' => 'fas fa-user',
-        'route' => 'clientes.clientes.view',
+        'route' => 'clientes.index',
+        'can' => ['clientes.index','superadmin'],
     ],    
 
     /*
@@ -396,29 +404,35 @@ return [
     [
         'text' => 'Productos',
         'icon' => 'fas fa-box',
+        'can' => ['productos.index','superadmin'],
         'submenu' => [
 
             [
                 'text' => 'Productos',
                 'route' => 'productos.productos.view',
+                'can' => ['productos.index','superadmin'],
             ],
 
             [
                 'text' => 'Clasificaciones',
                 'route' => 'productos.clasificaciones.view',
+                'can' => ['clasificaciones.index','superadmin'],
             ],
             [
                 'text' => 'Depósitos',
                 'route' => 'productos.depositos.view',
+                'can' => ['depositos.index','superadmin'],
             ],        
             [
                 'text' => 'Stock',
                 'route' => 'productos.stock.view',
+                'can' => ['stock.index','superadmin'],
             ],
 
             [
                 'text' => 'Movimientos Stock',
                 'route' => 'productos.movimientos.stock.view',
+                'can' => ['stock.index','superadmin'],
             ],
         ],
     ],
@@ -432,11 +446,13 @@ return [
     [
         'text' => 'Compras',
         'icon' => 'fa fa-shopping-cart',
+        'can' => ['compras.index','superadmin'],
         'submenu' => [
 
             [
                 'text' => 'Compras de Productos (Stock)',
                 'route' => 'compras.index',
+                'can' => ['compras.index','superadmin'],
             ],
         ],
     ],
@@ -452,6 +468,7 @@ return [
         'text' => 'Proveedores',
         'route' => 'proveedores.index',
         'icon' => 'fas fa-truck',
+        'can' => ['proveedores.index','superadmin'],
     ],
 
 
@@ -465,6 +482,7 @@ return [
         'text' => 'Mesas',
         'icon' => 'fas fa-chair',
         'route' => 'mesas.mesas.view',
+        'can' => ['mesas.index','superadmin'],
     ],
 
  
@@ -478,6 +496,7 @@ return [
     [
         'text' => 'Reportes',
         'icon' => 'fas fa-chart-bar',
+        'can' => ['reportes.index','superadmin'],
         'submenu' => [
 
         [
@@ -529,6 +548,10 @@ return [
             'text' => 'Utilidad por producto',
             'route' => 'reportes.utilidad',
         ],
+        [
+            'text' => 'Deudas a cobrar',
+            'route' => 'reportes.deudas',
+        ],
 
     ]
 ],
@@ -542,29 +565,35 @@ return [
     [
         'text' => 'Administrador',
         'icon' => 'fas fa-users-cog',
+        'can' => ['usuarios.index','superadmin'],
         'submenu' => [
 
             [
                 'text' => 'Usuarios',
                 'route' => 'administrador.usuarios.view',
+                'can' => ['usuarios.index','superadmin'],
             ],
 
             [
                 'text' => 'Módulos',
                 'route' => 'administrador.modulos.view',
+                'can' => 'superadmin',
             ],
 
             [
                 'text' => 'Roles',
                 'route' => 'administrador.roles.view',
+                'can' => 'superadmin',
             ],
             [
                 'text' => 'Empresa',
                 'route' => 'empresa.index',
+                'can' => 'superadmin',
             ],
             [
                 'text' => 'Sucursales',
                 'route' => 'sucursales.index',
+                'can' => 'superadmin',
             ],
         ],
     ],   

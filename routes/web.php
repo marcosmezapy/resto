@@ -134,7 +134,6 @@ Route::middleware(['auth'])->group(function(){
 |--------------------------------------------------------------------------
 | CLIENTES
 |--------------------------------------------------------------------------
-*/
 
 Route::middleware(['auth','verified'])
 ->prefix('clientes')
@@ -149,6 +148,22 @@ Route::middleware(['auth','verified'])
     Route::delete('clientes/{cliente}',[ClienteController::class,'destroy'])->name('clientes.delete');
 
 });
+
+*/
+
+
+Route::middleware(['auth','verified'])
+->prefix('clientes')
+->name('clientes.')
+->group(function(){
+
+    Route::get('/', [ClienteController::class,'index'])->name('index');
+    Route::get('/create', [ClienteController::class,'create'])->name('create');
+    Route::get('/{cliente}/edit', [ClienteController::class,'edit'])->name('edit');
+    Route::get('/{cliente}', [ClienteController::class,'show'])->name('show');
+
+});
+
 
 
 
@@ -283,6 +298,13 @@ Route::middleware(['auth','verified'])
     Route::get('{id}/print', [VentaController::class, 'print'])
         ->name('print');
 
+    Route::get('recibo/{pago}', function($pago){
+        $pago = app(\App\Services\Ventas\Historico\ReciboService::class)
+            ->getData($pago);
+
+        return view('livewire.ventas.historico.recibo', compact('pago'));
+    })->name('recibo');
+
 
 });
 
@@ -299,6 +321,7 @@ Route::middleware(['auth'])->prefix('reportes')->name('reportes.')->group(functi
     Route::view('/sin-rotacion', 'reportes.sin_rotacion')->name('sin_rotacion');
     Route::view('/stock-critico', 'reportes.stock_critico')->name('stock_critico');
     Route::view('/utilidad', 'reportes.utilidad')->name('utilidad');
+    Route::view('/deudas', 'reportes.deudas')->name('deudas');
 
 });
 

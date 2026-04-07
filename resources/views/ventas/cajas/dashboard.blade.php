@@ -27,10 +27,10 @@
 
 </div>
 
-{{-- 🔥 CUADROS SUPERIORES (SE MANTIENEN) --}}
-<div class="row">
+{{-- 🔥 CUADROS --}}
+<div class="d-flex justify-content-between">
 
-<div class="col-md-3">
+<div class="flex-fill mx-1">
 <div class="card bg-success">
 <div class="card-body text-center">
 <h6>Efectivo</h6>
@@ -39,7 +39,7 @@
 </div>
 </div>
 
-<div class="col-md-3">
+<div class="flex-fill mx-1">
 <div class="card bg-info">
 <div class="card-body text-center">
 <h6>Tarjeta</h6>
@@ -48,7 +48,7 @@
 </div>
 </div>
 
-<div class="col-md-3">
+<div class="flex-fill mx-1">
 <div class="card bg-warning">
 <div class="card-body text-center">
 <h6>Transferencia</h6>
@@ -57,11 +57,20 @@
 </div>
 </div>
 
-<div class="col-md-3">
+<div class="flex-fill mx-1">
+<div class="card bg-danger">
+<div class="card-body text-center">
+<h6>Pendiente (ventas abiertas)</h6>
+<h4>Gs. {{ number_format($pendiente,0,',','.') }}</h4>
+</div>
+</div>
+</div>
+
+<div class="flex-fill mx-1">
 <div class="card bg-dark">
 <div class="card-body text-center">
-<h6>Pendiente</h6>
-<h4>Gs. {{ number_format($pendiente,0,',','.') }}</h4>
+<h6>Crédito (NO en caja)</h6>
+<h4>Gs. {{ number_format($credito,0,',','.') }}</h4>
 </div>
 </div>
 </div>
@@ -70,15 +79,11 @@
 
 <hr>
 
-{{-- 🔥 VENTAS ABIERTAS + MOVIMIENTOS --}}
 <div class="row">
 
 <div class="col-md-6">
 <div class="card">
-
-<div class="card-header">
-Ventas abiertas
-</div>
+<div class="card-header">Ventas abiertas</div>
 
 <div class="card-body">
 
@@ -95,7 +100,6 @@ Ventas abiertas
 <tbody>
 @foreach($ventasAbiertas as $venta)
 <tr>
-
 <td>
 @if($venta->mesa_id)
     MESA - {{ $venta->mesa->numero ?? '-' }}
@@ -103,11 +107,7 @@ Ventas abiertas
     DIRECTA
 @endif
 </td>
-
-<td>
-Gs. {{ number_format($venta->total,0,',','.') }}
-</td>
-
+<td>Gs. {{ number_format($venta->total,0,',','.') }}</td>
 </tr>
 @endforeach
 </tbody>
@@ -126,17 +126,13 @@ No hay ventas abiertas
 
 <div class="col-md-6">
 <div class="card">
-
-<div class="card-header">
-Movimientos de caja
-</div>
+<div class="card-header">Movimientos de caja</div>
 
 <div class="card-body">
 
 @if($movimientos->count())
 
 <table class="table table-sm">
-
 <thead>
 <tr>
 <th>Tipo</th>
@@ -145,21 +141,16 @@ Movimientos de caja
 </thead>
 
 <tbody>
-
 @foreach($movimientos as $mov)
 <tr>
-
 <td>
 @if($mov->tipo=='ingreso') <span class="badge bg-success">Ingreso</span> @endif
 @if($mov->tipo=='gasto') <span class="badge bg-danger">Gasto</span> @endif
 @if($mov->tipo=='retiro') <span class="badge bg-warning">Retiro</span> @endif
 </td>
-
 <td>Gs. {{ number_format($mov->monto,0,',','.') }}</td>
-
 </tr>
 @endforeach
-
 </tbody>
 </table>
 
@@ -175,7 +166,6 @@ Movimientos de caja
 
 <hr>
 
-{{-- 🔥 RESUMEN ABAJO --}}
 <div class="row">
 
 <div class="col-md-12">
@@ -205,12 +195,15 @@ Gs. {{ number_format($cajaEsperada,0,',','.') }}</p>
 
 <hr>
 
-<h6>Ventas por otros medios</h6>
+<h6>Otros medios</h6>
 
 <p>Tarjeta: Gs. {{ number_format($tarjeta,0,',','.') }}</p>
 <p>Transferencia: Gs. {{ number_format($transferencia,0,',','.') }}</p>
 
 <hr>
+
+<p><b>Ventas a crédito (no ingresan a caja):</b> Gs. {{ number_format($credito,0,',','.') }}</p>
+
 
 <a href="{{ route('ventas.cajas.movimiento') }}" class="btn btn-warning btn-block">
 Registrar Movimiento
@@ -228,7 +221,4 @@ Cerrar Caja
 
 </div>
 
-@endsection
-@section('footer')
-    @include('adminlte::partials.footer.footer')
 @endsection

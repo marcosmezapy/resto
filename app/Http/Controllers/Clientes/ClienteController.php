@@ -19,6 +19,7 @@ class ClienteController extends Controller
     }
 */
 
+
     public function index()
     {
         return view('clientes.index');
@@ -29,45 +30,15 @@ class ClienteController extends Controller
         return view('clientes.create');
     }
 
-    public function store(Request $request)
+    public function edit($id)
     {
-
-        $request->validate([
-            'nombre'=>'required|max:255'
-        ]);
-
-        Cliente::create($request->all());
-
-        return redirect()
-            ->route('clientes.clientes.view')
-            ->with('success','Cliente creado correctamente');
+        return view('clientes.edit', compact('id'));
     }
 
-    public function edit(Cliente $cliente)
+    public function show($id)
     {
-        return view('clientes.edit', compact('cliente'));
+        return view('clientes.show', compact('id'));
     }
 
-    public function update(Request $request, Cliente $cliente)
-    {
 
-        $request->validate([
-            'nombre'=>'required|max:255'
-        ]);
-
-        $cliente->update($request->all());
-
-        return redirect()
-            ->route('clientes.clientes.view')
-            ->with('success','Cliente actualizado');
-    }
-
-    public function destroy(Cliente $cliente)
-    {
-        $cliente->delete();
-
-        return redirect()
-            ->route('clientes.clientes.view')
-            ->with('success','Cliente eliminado');
-    }
 }

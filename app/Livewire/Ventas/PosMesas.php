@@ -6,6 +6,7 @@ use Livewire\Component;
 use App\Models\Mesa;
 use App\Models\Venta;
 use App\Models\CajaSesion;
+use App\Services\Caja\CajaSesionService;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
@@ -19,16 +20,15 @@ class PosMesas extends Component
         ->orderBy('numero')
         ->get();
 
-        $caja = CajaSesion::where('usuario_id',Auth::id())
-            ->where('estado','abierta')
-            ->where('sucursal_id', session('sucursal_id')) // 🔥
-            ->first();
+        $cajaService = app(CajaSesionService::class);
+
+        $caja = $cajaService->getSesionActiva();
 
         $ventas = collect();
 
         if($caja){
 
-            $ventas = Venta::where('estado','abierta')
+            $ventas = Venta::whereIn('estado',['abierta','en_proceso'])
                 ->where('caja_sesion_id',$caja->id)
                 ->whereHas('detalles')
                 ->get()

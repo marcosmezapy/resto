@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
         SecuritySeeder::class,
         DatosGenericosSeeder::class,
         IvaTipoSeeder::class,
+        PermissionSeeder::class,
     ]);
 
     }

@@ -18,40 +18,47 @@ class DashboardEjecutivo extends Component
         $hoy = now()->toDateString();
 
         // =========================
-        // VENTA DEL DÍA
+        // FILTRO BASE (IMPORTANTE)
+        // =========================
+        $ventasBase = Venta::where('tenant_id',$tenantId)
+            ->where('sucursal_id',$sucursalId)
+            ->where('estado','!=','cancelada');
+
+        // =========================
+        // VENTAS DEL DÍA
         // =========================
         $detallesHoy = VentaDetalle::whereHas('venta', function($q) use ($tenantId,$sucursalId,$hoy){
             $q->where('tenant_id',$tenantId)
               ->where('sucursal_id',$sucursalId)
-              ->where('estado','pagada')
+              ->where('estado','cerrada')
               ->whereDate('created_at',$hoy);
         })->with('producto')->get();
 
         $ventaHoy = $detallesHoy->sum(fn($d)=> $d->precio * $d->cantidad);
-        $costoHoy = $detallesHoy->sum(fn($d)=> ($d->producto->costo_base ?? 0) * $d->cantidad);
+        $costoHoy = $detallesHoy->sum(fn($d)=> ($d->costo_unitario ?? 0) * $d->cantidad);
         $utilidadHoy = $ventaHoy - $costoHoy;
 
         // =========================
         // MES ACTUAL VS ANTERIOR
         // =========================
-        $ventaMes = Venta::where('estado','pagada')
-            ->where('tenant_id',$tenantId)
-            ->where('sucursal_id',$sucursalId)
+        $ventaMes = $ventasBase
+            ->where('estado','cerrada')
             ->whereMonth('created_at', now()->month)
             ->sum('total');
 
-        $ventaMesAnterior = Venta::where('estado','pagada')
-            ->where('tenant_id',$tenantId)
+        $ventaMesAnterior = Venta::where('tenant_id',$tenantId)
             ->where('sucursal_id',$sucursalId)
+            ->where('estado','cerrada')
+            ->where('estado','!=','cancelada')
             ->whereMonth('created_at', now()->subMonth()->month)
             ->sum('total');
 
         // =========================
         // TICKET PROMEDIO
         // =========================
-        $ventasHoyCount = Venta::where('estado','pagada')
-            ->where('tenant_id',$tenantId)
+        $ventasHoyCount = Venta::where('tenant_id',$tenantId)
             ->where('sucursal_id',$sucursalId)
+            ->where('estado','cerrada')
             ->whereDate('created_at',$hoy)
             ->count();
 
@@ -63,14 +70,42 @@ class DashboardEjecutivo extends Component
         $productosVendidosHoy = $detallesHoy->sum('cantidad');
 
         // =========================
+        // CRÉDITO (🔥 NUEVO)
+        // =========================
+        $ventasCredito = Venta::where('tenant_id',$tenantId)
+            ->where('sucursal_id',$sucursalId)
+            ->where('estado','cerrada')
+            ->where('condicion_pago','credito')
+            ->sum('total');
+
+        $deudaTotal = Venta::where('tenant_id',$tenantId)
+            ->where('sucursal_id',$sucursalId)
+            ->where('estado','cerrada')
+            ->where('estado_pago','!=','pagado')
+            ->where('estado_pago','!=','cancelado')
+            ->sum('saldo');
+
+        $deudaVencida = Venta::where('tenant_id',$tenantId)
+            ->where('sucursal_id',$sucursalId)
+            ->where('estado','cerrada')
+            ->where('estado_pago','!=','pagado')
+            ->where('estado_pago','!=','cancelado')
+            ->whereNotNull('fecha_vencimiento')
+            ->where('fecha_vencimiento','<',now())
+            ->sum('saldo');
+
+        $deudaNoVencida = $deudaTotal - $deudaVencida;
+
+        // =========================
         // TENDENCIA 30 DÍAS
         // =========================
         $ventasPorDia = collect(range(0,29))->map(function($i) use ($tenantId,$sucursalId){
             $fecha = now()->subDays($i)->toDateString();
 
-            $total = Venta::where('estado','pagada')
-                ->where('tenant_id',$tenantId)
+            $total = Venta::where('tenant_id',$tenantId)
                 ->where('sucursal_id',$sucursalId)
+                ->where('estado','cerrada')
+                ->where('estado','!=','cancelada')
                 ->whereDate('created_at',$fecha)
                 ->sum('total');
 
@@ -78,14 +113,13 @@ class DashboardEjecutivo extends Component
         })->reverse()->values();
 
         // =========================
-        // TOP 5 PRODUCTOS (30 DÍAS)
+        // TOP PRODUCTOS
         // =========================
         $topProductos = VentaDetalle::selectRaw('producto_id, SUM(cantidad) as total')
             ->whereHas('venta', function($q) use ($tenantId,$sucursalId){
                 $q->where('tenant_id',$tenantId)
                   ->where('sucursal_id',$sucursalId)
-                  ->where('estado','pagada')
-                  ->whereDate('created_at','>=', now()->subDays(30));
+                  ->where('estado','cerrada');
             })
             ->with('producto')
             ->groupBy('producto_id')
@@ -94,12 +128,12 @@ class DashboardEjecutivo extends Component
             ->get();
 
         // =========================
-        // HORAS PICO (SIN BUG)
+        // HORAS PICO
         // =========================
         $horas = collect(range(0,23))->map(function($h) use ($tenantId,$sucursalId){
-            $total = Venta::where('estado','pagada')
-                ->where('tenant_id',$tenantId)
+            $total = Venta::where('tenant_id',$tenantId)
                 ->where('sucursal_id',$sucursalId)
+                ->where('estado','cerrada')
                 ->whereRaw('HOUR(created_at) = ?', [$h])
                 ->count();
 
@@ -121,6 +155,7 @@ class DashboardEjecutivo extends Component
             'ventaHoy','costoHoy','utilidadHoy',
             'ventaMes','ventaMesAnterior',
             'ticketPromedio','productosVendidosHoy',
+            'ventasCredito','deudaTotal','deudaVencida','deudaNoVencida',
             'ventasPorDia','topProductos','horas',
             'sinStock','stockBajo'
         ));

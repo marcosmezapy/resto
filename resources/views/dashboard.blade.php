@@ -5,8 +5,12 @@
 @section('content')
 
 <div class="container-fluid">
-
-@livewire('reportes.dashboard-ejecutivo')
+@canany(['superadmin','reportes.index'])
+  @livewire('reportes.dashboard-ejecutivo')
+@else
+    <!-- LO VE EL RESTO -->
+    <p>Bienvenido al sistema ADMIRA</p>  
+@endcanany
 
 </div>
 

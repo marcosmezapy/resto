@@ -33,6 +33,20 @@
 
 <body onload="window.print()">
 
+@if($venta->estado == 'cancelada')
+<div style="
+    text-align:center;
+    font-weight:bold;
+    font-size:18px;
+    border:2px solid;
+    padding:5px;
+    margin-bottom:10px;
+">
+    *** DOCUMENTO CANCELADO ***
+</div>
+@endif
+
+
 <div class="center bold">
     {{ $venta->tenant->nombre ?? 'EMPRESA' }}
 </div>

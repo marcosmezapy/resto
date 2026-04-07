@@ -1,6 +1,6 @@
 <div>
 
-<!-- KPI -->
+<!-- KPI PRINCIPALES -->
 <div class="row">
 
 <div class="col-md-3">
@@ -38,6 +38,47 @@
 <div class="inner">
 <h4>{{ $productosVendidosHoy }}</h4>
 <p>Productos vendidos hoy</p>
+</div>
+</div>
+</div>
+
+</div>
+
+<!-- 💰 CRÉDITO Y DEUDAS -->
+<div class="row">
+
+<div class="col-md-3">
+<div class="small-box bg-secondary">
+<div class="inner">
+<h4>Gs {{ number_format($ventasCredito,0,',','.') }}</h4>
+<p>Ventas a crédito</p>
+</div>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="small-box bg-danger">
+<div class="inner">
+<h4>Gs {{ number_format($deudaTotal,0,',','.') }}</h4>
+<p>Total por cobrar</p>
+</div>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="small-box bg-danger">
+<div class="inner">
+<h4>Gs {{ number_format($deudaVencida,0,',','.') }}</h4>
+<p>Deuda vencida</p>
+</div>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="small-box bg-warning">
+<div class="inner">
+<h4>Gs {{ number_format($deudaNoVencida,0,',','.') }}</h4>
+<p>Deuda no vencida</p>
 </div>
 </div>
 </div>
@@ -129,7 +170,7 @@ border-radius:6px;
 </div>
 
 <div class="progress mb-3">
-<div class="progress-bar bg-danger" style="width: {{ $sinStock*10 }}%"></div>
+<div class="progress-bar bg-danger" style="width: {{ min($sinStock*10,100) }}%"></div>
 </div>
 
 <div class="mb-2 d-flex justify-content-between">
@@ -138,7 +179,7 @@ border-radius:6px;
 </div>
 
 <div class="progress">
-<div class="progress-bar bg-warning" style="width: {{ $stockBajo*10 }}%"></div>
+<div class="progress-bar bg-warning" style="width: {{ min($stockBajo*10,100) }}%"></div>
 </div>
 
 </div>
